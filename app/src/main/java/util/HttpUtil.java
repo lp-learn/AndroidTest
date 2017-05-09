@@ -19,43 +19,65 @@ import java.net.URLConnection;
  */
 
 public class HttpUtil {
-    public static String getPost(String url,String parm){
-
-        StringBuffer sb = new StringBuffer("");
-        try {
-            HttpURLConnection urlConnection = (HttpURLConnection) new URL(url).openConnection();
-            urlConnection.setDoInput(true);
-            urlConnection.setDoOutput(true);
-            urlConnection.setRequestProperty("Content-Type","application/json");
-            urlConnection.setRequestMethod("POST");
-            urlConnection.setConnectTimeout(6000);
-            urlConnection.setReadTimeout(6000);
-            urlConnection.setUseCaches(false);
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
-            bw.write(parm);
-            bw.close();
-            int state = urlConnection.getResponseCode();
-            if (state == 200) {
-                BufferedReader br = new BufferedReader( new InputStreamReader(urlConnection.getInputStream()));
-                String str = "";
-                while ((str=br.readLine())!=null){
-                    sb.append(str);
-                }
-                Log.e("test",sb.toString());
-                br.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return sb.toString();
-    };
-    public static String getPost(final String url){
-        final StringBuffer sb = new StringBuffer("");
+    public static void getPost(final String url,final String parm,final HttpListener listener){
         new Thread(new Runnable() {
             @Override
             public void run() {
+                HttpURLConnection urlConnection = null;
+                BufferedReader br = null;
+                StringBuffer sb = new StringBuffer("");
                 try {
-                    HttpURLConnection urlConnection = (HttpURLConnection) new URL(url).openConnection();
+                    urlConnection = (HttpURLConnection) new URL(url).openConnection();
+                    urlConnection.setDoInput(true);
+                    urlConnection.setDoOutput(true);
+                    urlConnection.setRequestProperty("Content-Type","application/json");
+                    urlConnection.setRequestMethod("POST");
+                    urlConnection.setConnectTimeout(6000);
+                    urlConnection.setReadTimeout(6000);
+                    urlConnection.setUseCaches(false);
+                    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
+                    bw.write(parm);
+                    bw.flush();
+                    bw.close();
+                    int state = urlConnection.getResponseCode();
+                    if (state == 200) {
+                        br = new BufferedReader( new InputStreamReader(urlConnection.getInputStream()));
+                        String str = "";
+                        while ((str=br.readLine())!=null){
+                            sb.append(str);
+                        }
+                        Log.e("HttpUtil", sb.toString());
+                        listener.onSuccess(sb.toString());
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFail(e);
+                }finally {
+                    if (br != null) {
+                        try {
+                            br.close();
+                            br = null;
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (urlConnection != null) {
+                        urlConnection.disconnect();
+                        urlConnection = null;
+                    }
+                }
+            }
+        }).start();
+    };
+    public static void getPost(final String url){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection urlConnection = null;
+                BufferedReader br = null;
+                StringBuffer sb = new StringBuffer("");
+                try {
+                    urlConnection = (HttpURLConnection) new URL(url).openConnection();
                     urlConnection.setDoInput(true);
                     urlConnection.setDoOutput(true);
                     urlConnection.setRequestProperty("Content-Type","application/json");
@@ -65,19 +87,29 @@ public class HttpUtil {
                     urlConnection.setUseCaches(false);
                     int state = urlConnection.getResponseCode();
                     if (state == 200) {
-                        BufferedReader br = new BufferedReader( new InputStreamReader(urlConnection.getInputStream()));
+                        br = new BufferedReader( new InputStreamReader(urlConnection.getInputStream()));
                         String str = "";
-                        while ((str=br.readLine())!=""){
+                        while ((str=br.readLine())!=null){
                             sb.append(str);
                         }
-                        br.close();
-                        Log.e("test",str);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                }finally {
+                    if (br != null) {
+                        try {
+                            br.close();
+                            br = null;
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (urlConnection != null) {
+                        urlConnection.disconnect();
+                        urlConnection = null;
+                    }
                 }
             }
         }).start();
-        return sb.toString();
     };
 }
